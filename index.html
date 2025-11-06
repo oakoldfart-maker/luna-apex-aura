@@ -6,92 +6,7 @@
     <title>APEX & AURA Dual-AI Companion</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Firebase SDKs -->
-    <script type="module">
-        // IMPORTANT: We MUST load all required modules from a single Firebase SDK list to prevent loading errors.
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, addDoc, serverTimestamp, getDocs, limit, enableIndexedDbPersistence, setLogLevel, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables provided by the environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        let db, auth;
-        let userId = null;
-        let isAuthReady = false;
-        
-        // Log level for Firebase debugging (optional, but good practice)
-        setLogLevel('debug');
-
-        if (firebaseConfig) {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Enable offline persistence (helpful for mobile users)
-                enableIndexedDbPersistence(db)
-                    .catch((err) => {
-                        if (err.code == 'failed-precondition') {
-                            console.warn("Multiple tabs open, persistence not enabled.");
-                        } else if (err.code == 'unimplemented') {
-                            console.warn("The current browser does not support persistence.");
-                        }
-                    });
-
-                // 1. Authentication Check & Initialization
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Authenticated with UID:", userId);
-                    } else if (initialAuthToken) {
-                        await signInWithCustomToken(auth, initialAuthToken);
-                        console.log("Signed in with custom token.");
-                    } else {
-                        const anonUser = await signInAnonymously(auth);
-                        userId = anonUser.user.uid;
-                        console.log("Signed in anonymously with UID:", userId);
-                    }
-                    isAuthReady = true;
-                    // Kick off listeners and initialization that depend on auth
-                    window.dispatchEvent(new Event('authReady'));
-                });
-
-            } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                showNotification("Error: Could not initialize Firebase.", 'bg-red-500');
-            }
-        }
-
-        // Global export for use in the main script
-        window.firebaseDependencies = { db, auth, getAuth, setDoc, doc, getDoc, collection, query, orderBy, onSnapshot, serverTimestamp, addDoc, getDocs, limit, deleteDoc };
-        window.getUserId = () => userId;
-        window.isAuthReady = () => isAuthReady;
-
-        // Custom modal notification function
-        window.showNotification = (message, colorClass = 'bg-blue-500') => {
-            const notification = document.getElementById('notification-toast');
-            const messageElement = document.getElementById('notification-message');
-            messageElement.textContent = message;
-            
-            // Clear existing classes and add the new color class
-            notification.className = 'fixed bottom-4 right-4 z-50 p-4 rounded-xl shadow-2xl transition-transform transform translate-y-full ' + colorClass;
-            
-            // Show the notification
-            setTimeout(() => {
-                notification.classList.remove('translate-y-full');
-                notification.classList.add('translate-y-0');
-            }, 50);
-
-            // Hide the notification after 4 seconds
-            setTimeout(() => {
-                notification.classList.remove('translate-y-0');
-                notification.classList.add('translate-y-full');
-            }, 4000);
-        };
-    </script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         body {
@@ -202,8 +117,93 @@
         </footer>
     </div>
 
-    <script>
-        // --- Core Application Logic ---
+    <!-- MAIN JAVASCRIPT: Loads Firebase and Core Logic -->
+    <script type="module">
+        // Import all necessary Firebase modules directly inside the main script
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, addDoc, serverTimestamp, getDocs, limit, enableIndexedDbPersistence, setLogLevel, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+        let userId = null;
+        let isAuthReady = false;
+        
+        // Log level for Firebase debugging (optional, but good practice)
+        setLogLevel('debug');
+
+        if (firebaseConfig) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Enable offline persistence (helpful for mobile users)
+                enableIndexedDbPersistence(db)
+                    .catch((err) => {
+                        if (err.code == 'failed-precondition') {
+                            console.warn("Multiple tabs open, persistence not enabled.");
+                        } else if (err.code == 'unimplemented') {
+                            console.warn("The current browser does not support persistence.");
+                        }
+                    });
+
+                // 1. Authentication Check & Initialization
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Authenticated with UID:", userId);
+                    } else if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        const anonUser = await signInAnonymously(auth);
+                        userId = anonUser.user.uid;
+                        console.log("Signed in anonymously with UID:", userId);
+                    }
+                    isAuthReady = true;
+                    // Kick off listeners and initialization that depend on auth
+                    window.dispatchEvent(new Event('authReady'));
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                showNotification("Error: Could not initialize Firebase.", 'bg-red-500');
+            }
+        }
+
+        // --- GLOBAL UTILITY EXPORTS ---
+        const firebaseDependencies = { db, auth, getAuth, setDoc, doc, getDoc, collection, query, orderBy, onSnapshot, serverTimestamp, addDoc, getDocs, limit, deleteDoc };
+        window.getUserId = () => userId;
+        window.isAuthReady = () => isAuthReady;
+
+        // Custom modal notification function
+        window.showNotification = (message, colorClass = 'bg-blue-500') => {
+            const notification = document.getElementById('notification-toast');
+            const messageElement = document.getElementById('notification-message');
+            messageElement.textContent = message;
+            
+            // Clear existing classes and add the new color class
+            notification.className = 'fixed bottom-4 right-4 z-50 p-4 rounded-xl shadow-2xl transition-transform transform translate-y-full ' + colorClass;
+            
+            // Show the notification
+            setTimeout(() => {
+                notification.classList.remove('translate-y-full');
+                notification.classList.add('translate-y-0');
+            }, 50);
+
+            // Hide the notification after 4 seconds
+            setTimeout(() => {
+                notification.classList.remove('translate-y-0');
+                notification.classList.add('translate-y-full');
+            }, 4000);
+        };
+
+        // --- CORE CHAT LOGIC ---
 
         const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=';
         const MAX_RETRIES = 5;
@@ -220,16 +220,10 @@
         const userIdDisplay = document.getElementById('user-id-display');
 
         let chatHistory = [];
-        let db, auth;
-        let userId = null;
-        let isAuthReady = false;
-
-        // --- Firebase Integration and Setup ---
+        
         window.addEventListener('authReady', () => {
-            ({ db, auth } = window.firebaseDependencies);
-            userId = window.getUserId();
-            isAuthReady = window.isAuthReady();
-            userIdDisplay.textContent = userId;
+            // Display user ID only when authenticated
+            if (userId) userIdDisplay.textContent = userId;
 
             // Load saved settings and start listening to chat
             loadSystemPrompt();
@@ -240,13 +234,16 @@
                 systemPromptArea.value = getDefaultSystemPrompt();
                 saveSystemPrompt(); // Save the default immediately
             }
+            userInput.disabled = false;
+            sendButton.disabled = false;
+            showNotification("APEX and AURA online. Ready for chat.", 'bg-purple-600');
         });
 
         function getChatCollectionRef() {
             if (db && userId) {
                 // Private data path: /artifacts/{appId}/users/{userId}/chat_messages
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                return window.firebaseDependencies.collection(db, 'artifacts', appId, 'users', userId, 'chat_messages');
+                return firebaseDependencies.collection(db, 'artifacts', appId, 'users', userId, 'chat_messages');
             }
             return null;
         }
@@ -255,7 +252,7 @@
             if (db && userId) {
                 // Private data path: /artifacts/{appId}/users/{userId}/settings/system_prompt
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                return window.firebaseDependencies.doc(db, 'artifacts', appId, 'users', userId, 'settings', 'system_prompt');
+                return firebaseDependencies.doc(db, 'artifacts', appId, 'users', userId, 'settings', 'system_prompt');
             }
             return null;
         }
@@ -265,7 +262,7 @@
             if (!docRef) return;
 
             try {
-                const docSnap = await window.firebaseDependencies.getDoc(docRef);
+                const docSnap = await firebaseDependencies.getDoc(docRef);
                 if (docSnap.exists()) {
                     systemPromptArea.value = docSnap.data().prompt || getDefaultSystemPrompt();
                 } else {
@@ -273,8 +270,7 @@
                 }
             } catch (error) {
                 console.error("Error loading system prompt:", error);
-                // Note: Don't show generic error to avoid confusing Luna. Log the error instead.
-                systemPromptArea.value = getDefaultSystemPrompt(); // Use default on failure
+                systemPromptArea.value = getDefaultSystemPrompt(); 
             }
         }
 
@@ -285,17 +281,13 @@
             const promptText = systemPromptArea.value.trim();
 
             try {
-                await window.firebaseDependencies.setDoc(docRef, { 
+                await firebaseDependencies.setDoc(docRef, { 
                     prompt: promptText,
-                    timestamp: window.firebaseDependencies.serverTimestamp()
+                    timestamp: firebaseDependencies.serverTimestamp()
                 });
                 showNotification("Dual Persona settings saved successfully!", 'bg-green-500');
-                // Clear chat history to apply the new prompt immediately
                 chatHistory = []; 
-                
-                // Fetch and delete all existing messages to ensure a fresh chat with the new persona
                 await deleteOldChatHistory();
-
             } catch (error) {
                 console.error("Error saving system prompt:", error);
                 showNotification("Error saving persona settings.", 'bg-red-500');
@@ -307,28 +299,23 @@
              if (!collectionRef) return;
 
              try {
-                // Query a batch of old documents
-                const q = window.firebaseDependencies.query(collectionRef, window.firebaseDependencies.limit(50));
-                const snapshot = await window.firebaseDependencies.getDocs(q);
+                const q = firebaseDependencies.query(collectionRef, firebaseDependencies.limit(50));
+                const snapshot = await firebaseDependencies.getDocs(q);
 
                 if (snapshot.size === 0) {
                     return;
                 }
 
-                // Delete documents in the batch
                 for (const doc of snapshot.docs) {
-                    // Use deleteDoc from firebaseDependencies
-                    await window.firebaseDependencies.deleteDoc(doc.ref);
+                    await firebaseDependencies.deleteDoc(doc.ref);
                 }
                 
-                // Recursively call until all are deleted (if more than 50)
                 if (snapshot.size === 50) {
                      await deleteOldChatHistory();
                 }
 
              } catch (error) {
                 console.error("Error clearing old chat history:", error);
-                // Note: Avoiding notification here to keep UI clean during background process.
              }
         }
 
@@ -337,26 +324,24 @@
             const collectionRef = getChatCollectionRef();
             if (!collectionRef) return;
 
-            const q = window.firebaseDependencies.query(
+            const q = firebaseDependencies.query(
                 collectionRef,
-                window.firebaseDependencies.orderBy('timestamp', 'desc'),
-                window.firebaseDependencies.limit(50) // Increase limit for richer context
+                firebaseDependencies.orderBy('timestamp', 'desc'),
+                firebaseDependencies.limit(50) 
             );
 
             // Real-time listener
-            window.firebaseDependencies.onSnapshot(q, (snapshot) => {
+            firebaseDependencies.onSnapshot(q, (snapshot) => {
                 const newMessages = snapshot.docs.map(doc => ({
                     id: doc.id,
                     ...doc.data()
-                })).reverse(); // Reverse to chronological order
+                })).reverse(); 
                 
-                // Update chat history globally (for API context)
                 chatHistory = newMessages.map(msg => ({
                     role: msg.role === 'user' ? 'user' : 'model',
                     parts: [{ text: msg.text }]
                 }));
 
-                // Render the new messages
                 renderMessages(newMessages);
             }, (error) => {
                 console.error("Error listening to chat messages:", error);
@@ -365,31 +350,30 @@
         }
 
         function renderMessages(messages) {
-            chatWindow.innerHTML = ''; // Clear existing
+            chatWindow.innerHTML = ''; 
             messages.forEach(msg => {
                 const isUser = msg.role === 'user';
                 const bubble = document.createElement('div');
                 bubble.className = `message-bubble ${isUser ? 'user-bubble' : 'ai-bubble'}`;
                 
-                // Basic markdown rendering for AI output
                 let content = msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
                 content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
                 content = content.replace(/\n/g, '<br>');
 
                 bubble.innerHTML = content;
-                chatWindow.prepend(bubble); // Use prepend for column-reverse layout
+                chatWindow.prepend(bubble); 
             });
-            // Only scroll to bottom if we are near the bottom already
             if (chatWindow.scrollHeight - chatWindow.clientHeight <= chatWindow.scrollTop + 50) {
                 chatWindow.scrollTop = chatWindow.scrollHeight; 
             }
         }
 
-        // --- Gemini API Call ---
+        // --- Gemini API Call and Send Message Logic ---
 
         async function generateContentWithRetry(payload, retryCount = 0) {
+            // ... (API logic remains the same)
             try {
-                const apiKey = "" // API key is handled by the environment
+                const apiKey = "" 
                 const url = API_URL + apiKey;
                 
                 const response = await fetch(url, {
@@ -399,7 +383,7 @@
                 });
 
                 if (response.status === 429 && retryCount < MAX_RETRIES) {
-                    const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+                    const delay = Math.pow(2, retryCount) * 1000; 
                     console.warn(`Rate limit exceeded. Retrying in ${delay / 1000}s...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     return generateContentWithRetry(payload, retryCount + 1);
@@ -426,31 +410,26 @@
                  return;
             }
 
-            // Disable input and show loading
             userInput.value = '';
             userInput.disabled = true;
             sendButton.disabled = true;
             loadingOverlay.classList.remove('hidden');
 
-            // 1. Save user message to Firestore (this triggers the listener and updates the UI)
             const userMessage = { 
                 role: 'user', 
                 text: text, 
-                timestamp: window.firebaseDependencies.serverTimestamp() 
+                timestamp: firebaseDependencies.serverTimestamp() 
             };
             const chatRef = getChatCollectionRef();
             
-            // We use addDoc which relies on the imported Firestore modules being available.
-            await window.firebaseDependencies.addDoc(chatRef, userMessage);
+            await firebaseDependencies.addDoc(chatRef, userMessage);
 
-            // 2. Prepare payload for the AI
             const systemPrompt = systemPromptArea.value.trim();
             const contents = [...chatHistory, { role: 'user', parts: [{ text: text }] }];
             
             const payload = {
                 contents: contents,
                 systemInstruction: { parts: [{ text: systemPrompt }] },
-                // Enable Google Search for grounding, as requested
                 tools: [{ "google_search": {} }],
             };
             
@@ -467,15 +446,13 @@
                 console.error(error.message);
                 showNotification(error.message, 'bg-red-500');
             } finally {
-                // 3. Save AI response to Firestore
                 const aiMessage = { 
                     role: 'model', 
                     text: aiResponseText, 
-                    timestamp: window.firebaseDependencies.serverTimestamp() 
+                    timestamp: firebaseDependencies.serverTimestamp() 
                 };
-                await window.firebaseDependencies.addDoc(chatRef, aiMessage);
+                await firebaseDependencies.addDoc(chatRef, aiMessage);
 
-                // Re-enable input and hide loading
                 userInput.disabled = false;
                 sendButton.disabled = false;
                 loadingOverlay.classList.add('hidden');
@@ -483,7 +460,7 @@
             }
         }
 
-        // --- Event Listeners and Utilities ---
+        // --- Event Listeners ---
 
         sendButton.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
@@ -493,9 +470,7 @@
             }
         });
         
-        savePromptButton.addEventListener('click', () => {
-            saveSystemPrompt();
-        });
+        savePromptButton.addEventListener('click', saveSystemPrompt);
 
         toggleSettingsButton.addEventListener('click', () => {
             settingsPanel.classList.toggle('hidden');
