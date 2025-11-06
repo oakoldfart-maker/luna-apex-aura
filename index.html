@@ -8,10 +8,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Firebase SDKs -->
     <script type="module">
-        // Import necessary Firebase modules
+        // IMPORTANT: We MUST load all required modules from a single Firebase SDK list to prevent loading errors.
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // FIX: Added getDoc to the import list from firebase-firestore.js
-        import { getFirestore, doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, addDoc, serverTimestamp, getDocs, limit, enableIndexedDbPersistence, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, orderBy, onSnapshot, setDoc, addDoc, serverTimestamp, getDocs, limit, enableIndexedDbPersistence, setLogLevel, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -66,8 +66,7 @@
         }
 
         // Global export for use in the main script
-        // FIX: Added getDoc to the exported firebaseDependencies object
-        window.firebaseDependencies = { db, auth, getAuth, setDoc, doc, getDoc, collection, query, orderBy, onSnapshot, serverTimestamp, addDoc, getDocs, limit };
+        window.firebaseDependencies = { db, auth, getAuth, setDoc, doc, getDoc, collection, query, orderBy, onSnapshot, serverTimestamp, addDoc, getDocs, limit, deleteDoc };
         window.getUserId = () => userId;
         window.isAuthReady = () => isAuthReady;
 
@@ -266,7 +265,6 @@
             if (!docRef) return;
 
             try {
-                // getDoc is now correctly available in window.firebaseDependencies
                 const docSnap = await window.firebaseDependencies.getDoc(docRef);
                 if (docSnap.exists()) {
                     systemPromptArea.value = docSnap.data().prompt || getDefaultSystemPrompt();
@@ -275,7 +273,7 @@
                 }
             } catch (error) {
                 console.error("Error loading system prompt:", error);
-                showNotification("Error loading persona settings.", 'bg-red-500');
+                // Note: Don't show generic error to avoid confusing Luna. Log the error instead.
                 systemPromptArea.value = getDefaultSystemPrompt(); // Use default on failure
             }
         }
@@ -314,14 +312,12 @@
                 const snapshot = await window.firebaseDependencies.getDocs(q);
 
                 if (snapshot.size === 0) {
-                    console.log("No old messages to delete.");
                     return;
                 }
 
                 // Delete documents in the batch
-                // NOTE: Using Promise.all to handle parallel deletion is generally faster,
-                // but for simplicity and avoiding complex batch writes, we'll keep the await inside the loop.
                 for (const doc of snapshot.docs) {
+                    // Use deleteDoc from firebaseDependencies
                     await window.firebaseDependencies.deleteDoc(doc.ref);
                 }
                 
@@ -330,11 +326,9 @@
                      await deleteOldChatHistory();
                 }
 
-                showNotification("Old chat history cleared.", 'bg-yellow-500');
-
              } catch (error) {
                 console.error("Error clearing old chat history:", error);
-                showNotification("Error clearing old chat history.", 'bg-red-500');
+                // Note: Avoiding notification here to keep UI clean during background process.
              }
         }
 
@@ -385,7 +379,10 @@
                 bubble.innerHTML = content;
                 chatWindow.prepend(bubble); // Use prepend for column-reverse layout
             });
-            chatWindow.scrollTop = chatWindow.scrollHeight; // Scroll to bottom
+            // Only scroll to bottom if we are near the bottom already
+            if (chatWindow.scrollHeight - chatWindow.clientHeight <= chatWindow.scrollTop + 50) {
+                chatWindow.scrollTop = chatWindow.scrollHeight; 
+            }
         }
 
         // --- Gemini API Call ---
@@ -424,7 +421,10 @@
 
         async function sendMessage() {
             const text = userInput.value.trim();
-            if (!text || !isAuthReady) return;
+            if (!text || !isAuthReady) {
+                 if (!isAuthReady) console.warn("Authentication not ready. Cannot send message.");
+                 return;
+            }
 
             // Disable input and show loading
             userInput.value = '';
@@ -439,6 +439,8 @@
                 timestamp: window.firebaseDependencies.serverTimestamp() 
             };
             const chatRef = getChatCollectionRef();
+            
+            // We use addDoc which relies on the imported Firestore modules being available.
             await window.firebaseDependencies.addDoc(chatRef, userMessage);
 
             // 2. Prepare payload for the AI
@@ -448,7 +450,7 @@
             const payload = {
                 contents: contents,
                 systemInstruction: { parts: [{ text: systemPrompt }] },
-                // Enable Google Search for grounding, as requested ("look up other information")
+                // Enable Google Search for grounding, as requested
                 tools: [{ "google_search": {} }],
             };
             
@@ -532,5 +534,4 @@ APEX: Ready, My Luna. What challenge shall we tackle first?
 
     </script>
 </body>
-
-</html> 
+</html>
